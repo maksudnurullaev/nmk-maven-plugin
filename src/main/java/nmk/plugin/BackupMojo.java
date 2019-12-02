@@ -14,10 +14,10 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Goal to show found pom.xml files to backup/restore actions.
+ * Backup goal for file (pom.xml file, by default).
  */
 @Mojo( name = "backup", defaultPhase = LifecyclePhase.PROCESS_SOURCES )
-@Description("Backup actions.")
+@Description("Backup action.")
 public class BackupMojo
     extends AbstractMojo
 {
@@ -38,30 +38,37 @@ public class BackupMojo
     private String fileMask;
 
     @Parameter( defaultValue = "${project.basedir}", readonly = true )
-    private File basedir;    
+    private File baseDir;    
+    
+    @Parameter( defaultValue = "${project.artifactId}", readonly = true)
+    private String artifactId;
 
 	public void execute()
         throws MojoExecutionException
     {
-    	getLog().info( "NMK:BACKUP, file(s) will be saved:" + outputDirectory.getAbsolutePath() );
-    	getLog().info( "NMK:BACKUP, file(s) mask:" + fileMask);
+    	final String destFileName = Utils.getBackupFileName(artifactId, fileMask);
     	
-    	File _fileMask = new File(basedir, fileMask);
-    	if(!_fileMask.exists()) {
-    		throw new MojoExecutionException("Could not find sorce file maks: " + fileMask);
+    	getLog().info( "NMK:BACKUP, file(s) will be backuped from:" + baseDir.getAbsolutePath() );
+    	getLog().info( "NMK:BACKUP, to:" + outputDirectory.getAbsolutePath() );
+    	getLog().info( "NMK:BACKUP, file name:" + destFileName);
+    	
+    	File _sourceFileMask = new File(baseDir, fileMask);
+    	File _destFileMask = new File(outputDirectory, destFileName);
+
+    	if(!_sourceFileMask.exists()) {
+    		throw new MojoExecutionException("Could not find source directory: " + _sourceFileMask.getAbsolutePath());
     	}
     	
-    	File _destFileMask = new File(outputDirectory, fileMask);
-
     	if ( !outputDirectory.exists() )
         {
     		outputDirectory.mkdirs();
         }
     	
     	try {
-    	    FileUtils.copyFile(_fileMask, _destFileMask);
+    	    FileUtils.copyFile(_sourceFileMask, _destFileMask);
     	} catch (IOException e) {
     		throw new MojoExecutionException(e.getMessage());
     	}
     }
+
 }

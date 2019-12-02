@@ -7,6 +7,7 @@ import java.io.File;
 
 import org.apache.maven.plugin.testing.MojoRule;
 import org.apache.maven.plugin.testing.WithoutMojo;
+import org.codehaus.plexus.util.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -31,41 +32,39 @@ public class MyMojoTest {
 		assertNotNull(pom);
 		assertTrue(pom.exists());
 
+		// 1. Test show goal processing
 		ShowMojo showMojo = (ShowMojo) rule.lookupConfiguredMojo(pom, "show");
 		assertNotNull(showMojo);
 		showMojo.execute();
 
+		// 2. Test backup goal processing
 		BackupMojo backupMojo = (BackupMojo) rule.lookupConfiguredMojo(pom, "backup");
 		assertNotNull(backupMojo);
-		backupMojo.execute();
+		backupMojo.execute();				
 
 		File outputDirectory = (File) rule.getVariableValueFromObject(backupMojo, "outputDirectory");
 		assertNotNull(outputDirectory);
 		assertTrue(outputDirectory.exists());
 
-		String fileMask = (String) rule.getVariableValueFromObject(backupMojo, "fileMask");
-		File _fileMask = new File(outputDirectory, fileMask);
-		assertNotNull(_fileMask);
-		assertTrue(_fileMask.exists());
+		final String fileMask = (String) rule.getVariableValueFromObject(backupMojo, "fileMask");
+		final String artifactId = (String) rule.getVariableValueFromObject(backupMojo, "artifactId");
+		assertNotNull(artifactId);
 		
-
-//		MavenProject project = myMojo.getProject();
-//		assertNotNull(project);
-//		List<String> modules = project.getModules();
-//
-//		if (myMojo.isMultiProjectMode()) {
-//			myMojo.getLog().info("Modules:");
-//			for (String string : modules) {
-//				myMojo.getLog().info("-> Module name: " + string);
-//			}
-//		}
-//        File outputDirectory = ( File ) rule.getVariableValueFromObject( myMojo, "outputDirectory" );
-//        assertNotNull( outputDirectory );
-//        assertTrue( outputDirectory.exists() );
-
-//        File touch = new File( outputDirectory, "touch2.txt" );
-//        assertTrue( touch.exists() );
-
+		final String backupFileName = Utils.getBackupFileName(artifactId, fileMask);
+		File _backupedFile = new File(outputDirectory, backupFileName);
+		assertNotNull(_backupedFile);
+		assertTrue(_backupedFile.exists());
+		
+		// 3. Test restore goal processing
+		RestoreMojo restoreMojo = (RestoreMojo) rule.lookupConfiguredMojo(pom, "restore");
+		assertNotNull(restoreMojo);
+		restoreMojo.execute();
+		
+		File _baseDir = (File) rule.getVariableValueFromObject(restoreMojo, "baseDir");		
+		assertNotNull(fileMask);		
+		File _originalFile = new File(_baseDir, fileMask);
+		assertTrue(_originalFile.exists());
+		assertTrue(FileUtils.contentEquals(_backupedFile, _originalFile));
 	}
 
 	/** Do not need the MojoRule. */
